@@ -7,6 +7,9 @@ Bun.serve({
         "/": new Response(await Bun.file("public/index.html").bytes(), {
             headers: { "Content-Type": "text/html" },
         }),
+        "/index.js": new Response(await Bun.file("public/index.js").bytes(), {
+            headers: { "Content-Type": "text/javascript" },
+        }),
         "/api/canvas": {
             GET: async () => {
                 const events =
