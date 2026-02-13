@@ -17,6 +17,25 @@ const size = { width: 0, height: 0 }
 })()
 let pixelSize = 20
 const transform = { x: 20, y: 20 }
+let dragging = false
+function cursor(name) {
+    canvas.style.cursor = name
+}
+canvas.addEventListener("mousedown", () => {
+    dragging = true
+    cursor("grabbing")
+})
+addEventListener("mouseup", () => {
+    dragging = false
+    cursor("grab")
+})
+cursor("grab")
+addEventListener("mousemove", (ev) => {
+    if (dragging) {
+        transform.x += ev.movementX
+        transform.y += ev.movementY
+    }
+})
 function draw() {
     ctx.clearRect(0, 0, innerWidth, innerHeight)
     ctx.save()
