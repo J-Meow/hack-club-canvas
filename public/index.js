@@ -16,7 +16,7 @@ const size = { width: 0, height: 0 }
     pixels = json.pixels
 })()
 let pixelSize = 20
-const transform = { x: 20, y: 20 }
+const transform = { x: 0, y: 0 }
 let dragging = false
 function cursor(name) {
     canvas.style.cursor = name
@@ -39,6 +39,8 @@ addEventListener("mousemove", (ev) => {
 function draw() {
     ctx.clearRect(0, 0, innerWidth, innerHeight)
     ctx.save()
+    ctx.translate((-size.width * pixelSize) / 2, (-size.height * pixelSize) / 2)
+    ctx.translate(innerWidth / 2, innerHeight / 2)
     ctx.translate(transform.x, transform.y)
     ctx.fillStyle = "#eeeeee"
     ctx.fillRect(0, 0, size.width * pixelSize, size.height * pixelSize)
