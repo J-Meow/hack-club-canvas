@@ -16,26 +16,80 @@ const size = { width: 0, height: 0 }
     pixels = json.pixels
 })()
 let pixelSize = 20
-const transform = { x: 0, y: 0 }
+const transform = { x: 0, y: 0, zoom: 1 }
+function toBoardCoords(x, y, center = false) {
+    if (!center) {
+        x -= (-size.width * pixelSize) / 2
+        y -= (-size.height * pixelSize) / 2
+    }
+    x -= transform.x
+    y -= transform.y
+    x -= innerWidth / 2
+    y -= innerHeight / 2
+    x /= pixelSize
+    y /= pixelSize
+    return { x, y }
+}
 let dragging = false
 function cursor(name) {
     canvas.style.cursor = name
 }
-canvas.addEventListener("mousedown", () => {
+canvas.addEventListener("mousedown", (ev) => {
     dragging = true
     cursor("grabbing")
+    lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
 })
-addEventListener("mouseup", () => {
+addEventListener("mouseup", (ev) => {
     dragging = false
     cursor("grab")
+    lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
 })
 cursor("grab")
+let lastCursorPositionCentered = { x: undefined, y: undefined }
 addEventListener("mousemove", (ev) => {
     if (dragging) {
         transform.x += ev.movementX
         transform.y += ev.movementY
     }
+    lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
 })
+const zoomMin = 10
+const zoomMax = 1000
+addEventListener(
+    "wheel",
+    (ev) => {
+        if (typeof lastCursorPositionCentered.x == "undefined") {
+            lastCursorPositionCentered = toBoardCoords(
+                ev.clientX,
+                ev.clientY,
+                true,
+            )
+        }
+        if (ev.ctrlKey || ev.metaKey || ev.altKey) {
+            const originalZoom = pixelSize
+            pixelSize -= ev.deltaY
+            if (pixelSize < zoomMin) {
+                pixelSize = zoomMin
+            }
+            if (pixelSize > zoomMax) {
+                pixelSize = zoomMax
+            }
+            const zoomChange = pixelSize - originalZoom
+            transform.x -= zoomChange * lastCursorPositionCentered.x
+            transform.y -= zoomChange * lastCursorPositionCentered.y
+        } else {
+            transform.x -= ev.deltaX
+            transform.y -= ev.deltaY
+            lastCursorPositionCentered = toBoardCoords(
+                ev.clientX,
+                ev.clientY,
+                true,
+            )
+        }
+        ev.preventDefault()
+    },
+    { passive: false },
+)
 function draw() {
     ctx.clearRect(0, 0, innerWidth, innerHeight)
     ctx.save()
