@@ -15,6 +15,7 @@ const size = { width: 0, height: 0 }
     size.height = json.height
     pixels = json.pixels
 })()
+let mode = "move"
 let pixelSize = 20
 const transform = { x: 0, y: 0, zoom: 1 }
 function toBoardCoords(x, y, center = false) {
@@ -34,24 +35,54 @@ let dragging = false
 function cursor(name) {
     canvas.style.cursor = name
 }
-canvas.addEventListener("mousedown", (ev) => {
-    dragging = true
-    cursor("grabbing")
-    lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
+canvas.addEventListener("mousedown", async (ev) => {
+    if (mode == "move") {
+        dragging = true
+        cursor("grabbing")
+        lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
+    } else if (mode == "place") {
+        const coords = toBoardCoords(ev.clientX, ev.clientY)
+        const x = Math.floor(coords.x)
+        const y = Math.floor(coords.y)
+        if (x < 0 || x >= size.width || y < 0 || y >= size.height) {
+            return
+        }
+        const response = await fetch("/api/canvas", {
+            method: "POST",
+            body: JSON.stringify({ x, y, color: "#000000" }),
+        })
+        const json = await response.json()
+        size.width = json.width
+        size.height = json.height
+        pixels = json.pixels
+    }
 })
 addEventListener("mouseup", (ev) => {
-    dragging = false
-    cursor("grab")
-    lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
+    if (mode == "move") {
+        dragging = false
+        cursor("grab")
+        lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
+    }
 })
 cursor("grab")
 let lastCursorPositionCentered = { x: undefined, y: undefined }
 addEventListener("mousemove", (ev) => {
-    if (dragging) {
-        transform.x += ev.movementX
-        transform.y += ev.movementY
+    if (mode == "move") {
+        if (dragging) {
+            transform.x += ev.movementX
+            transform.y += ev.movementY
+        }
+        lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
+    } else if (mode == "place") {
+        const coords = toBoardCoords(ev.clientX, ev.clientY)
+        const x = Math.floor(coords.x)
+        const y = Math.floor(coords.y)
+        if (x < 0 || x >= size.width || y < 0 || y >= size.height) {
+            cursor("not-allowed")
+            return
+        }
+        cursor("crosshair")
     }
-    lastCursorPositionCentered = toBoardCoords(ev.clientX, ev.clientY, true)
 })
 const zoomMin = 10
 const zoomMax = 1000
