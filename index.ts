@@ -7,6 +7,7 @@ async function currentState() {
         await sql`SELECT id, type, color, x, y, width, height FROM events`
     const canvasSize = { width: 0, height: 0 }
     const canvasPixels: { [key: string]: string } = {}
+    const allowedColors: string[] = []
     events.forEach(
         (event: {
             type: string
@@ -25,6 +26,30 @@ async function currentState() {
                 case "pixel":
                     canvasPixels[event.x + "," + event.y] = event.color!
                     break
+                case "addcolor":
+                    if (allowedColors.includes(event.color!)) {
+                        console.log(
+                            "Color " +
+                                event.color +
+                                " already allowed with id " +
+                                event.id,
+                        )
+                        break
+                    }
+                    allowedColors.push(event.color!)
+                    break
+                case "removecolor":
+                    if (!allowedColors.includes(event.color!)) {
+                        console.log(
+                            "Color " +
+                                event.color +
+                                " can't be disallowed because it is already not allowed with id " +
+                                event.id,
+                        )
+                        break
+                    }
+                    allowedColors.splice(allowedColors.indexOf(event.color!), 1)
+                    break
                 default:
                     console.log(
                         "Unkown event type " +
@@ -38,6 +63,7 @@ async function currentState() {
     return {
         ...canvasSize,
         pixels: canvasPixels,
+        allowedColors,
     }
 }
 
@@ -57,10 +83,21 @@ Bun.serve({
                 return Response.json(await currentState())
             },
             POST: async (req) => {
-                const json = await req.json()
-                // TODO: Add validation
+                const json = (await req.json()) as {
+                    color: string
+                    x: number
+                    y: number
+                }
+                // TODO: Add better validation
 
-                // @ts-expect-error i don't feel like fixing this
+                const boardState = await currentState()
+                if (!boardState.allowedColors.includes(json.color)) {
+                    return Response.json(
+                        { error: "Color not in list of allowed colors" },
+                        { status: 400 },
+                    )
+                }
+
                 await sql`INSERT INTO events("type", "x", "y", "color") VALUES('pixel', ${json.x}, ${json.y}, ${json.color})`
                 return Response.json(await currentState())
             },
